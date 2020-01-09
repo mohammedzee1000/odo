@@ -2,10 +2,10 @@ package version
 
 import (
 	"fmt"
-	"os"
-	"strings"
+	"github.com/openshift/odo/pkg/log"
+	"github.com/openshift/odo/pkg/machineoutput"
+	"github.com/openshift/odo/pkg/odo/version"
 
-	"github.com/openshift/odo/pkg/occlient"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	odoversion "github.com/openshift/odo/pkg/version"
 
@@ -34,7 +34,8 @@ type VersionOptions struct {
 	// clientFlag indicates if the user only wants client information
 	clientFlag bool
 	// serverInfo contains the remote server information if the user asked for it, nil otherwise
-	serverInfo *occlient.ServerInfo
+	//	serverInfo *occlient.ServerInfo
+	version *version.OdoVersion
 }
 
 // NewVersionOptions creates a new VersionOptions instance
@@ -44,13 +45,7 @@ func NewVersionOptions() *VersionOptions {
 
 // Complete completes VersionOptions after they have been created
 func (o *VersionOptions) Complete(name string, cmd *cobra.Command, args []string) error {
-	if !o.clientFlag {
-		// Let's fetch the info about the server, ignoring errors
-		client, err := occlient.New()
-		if err == nil {
-			o.serverInfo, _ = client.GetServerVersion()
-		}
-	}
+	o.version = version.NewOdoVersion(o.clientFlag)
 	return nil
 }
 
@@ -61,31 +56,32 @@ func (o *VersionOptions) Validate() (err error) {
 
 // Run contains the logic for the odo service create command
 func (o *VersionOptions) Run() (err error) {
-	// If verbose mode is enabled, dump all KUBECLT_* env variables
-	// this is usefull for debuging oc plugin integration
-	for _, v := range os.Environ() {
-		if strings.HasPrefix(v, "KUBECTL_") {
-			glog.V(4).Info(v)
+	if log.IsJSON() {
+		machineoutput.OutputSuccess(o.version)
+	} else {
+		// If verbose mode is enabled, dump all KUBECLT_* env variables
+		// this is usefull for debuging oc plugin integration
+		for k, v := range o.version.KubernetesEnv {
+			glog.V(4).Info(fmt.Sprint(k, "=", v))
+		}
+
+		fmt.Println("odo " + o.version.Version + " (" + o.version.GitCommit + ")")
+
+		if !o.clientFlag && o.version.ServerInfo != nil {
+			// make sure we only include OpenShift info if we actually have it
+			openshiftStr := ""
+			if len(o.version.ServerInfo.OpenShiftVersion) > 0 {
+				openshiftStr = fmt.Sprintf("OpenShift: %v\n", o.version.ServerInfo.OpenShiftVersion)
+			}
+			fmt.Printf("\n"+
+				"Server: %v\n"+
+				"%v"+
+				"Kubernetes: %v\n",
+				o.version.ServerInfo.Address,
+				openshiftStr,
+				o.version.ServerInfo.KubernetesVersion)
 		}
 	}
-
-	fmt.Println("odo " + odoversion.VERSION + " (" + odoversion.GITCOMMIT + ")")
-
-	if !o.clientFlag && o.serverInfo != nil {
-		// make sure we only include OpenShift info if we actually have it
-		openshiftStr := ""
-		if len(o.serverInfo.OpenShiftVersion) > 0 {
-			openshiftStr = fmt.Sprintf("OpenShift: %v\n", o.serverInfo.OpenShiftVersion)
-		}
-		fmt.Printf("\n"+
-			"Server: %v\n"+
-			"%v"+
-			"Kubernetes: %v\n",
-			o.serverInfo.Address,
-			openshiftStr,
-			o.serverInfo.KubernetesVersion)
-	}
-
 	return
 }
 
@@ -94,17 +90,18 @@ func NewCmdVersion(name, fullName string) *cobra.Command {
 	o := NewVersionOptions()
 	// versionCmd represents the version command
 	var versionCmd = &cobra.Command{
-		Use:     name,
-		Short:   versionLongDesc,
-		Long:    versionLongDesc,
-		Example: fmt.Sprintf(versionExample, fullName),
+		Use:         name,
+		Short:       versionLongDesc,
+		Long:        versionLongDesc,
+		Example:     fmt.Sprintf(versionExample, fullName),
+		Annotations: map[string]string{"machineoutput": "json", "command": "utility"},
 		Run: func(cmd *cobra.Command, args []string) {
 			genericclioptions.GenericRun(o, cmd, args)
 		},
 	}
 
 	// Add a defined annotation in order to appear in the help menu
-	versionCmd.Annotations = map[string]string{"command": "utility"}
+	//versionCmd.Annotations = map[string]string{"command": "utility"}
 	versionCmd.SetUsageTemplate(util.CmdUsageTemplate)
 	versionCmd.Flags().BoolVar(&o.clientFlag, "client", false, "Client version only (no server required).")
 
