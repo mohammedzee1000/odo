@@ -64,6 +64,7 @@ cp -avrf dist/release/odo*.tar.gz %{buildroot}%{_datadir}/%{name}-redistributabl
 cp -avrf dist/release/odo*.zip %{buildroot}%{_datadir}/%{name}-redistributable
 cp -avrf dist/release/SHA256_SUM %{buildroot}%{_datadir}/%{name}-redistributable
 cp -avrf dist/release/VERSION %{buildroot}%{_datadir}/%{name}-redistributable
+cp -avrf dist/site.tar.gz %{buildroot}%{_datadir}/%{name}-redistributable
 
 %files
 %license LICENSE

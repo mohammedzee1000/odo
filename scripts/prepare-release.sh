@@ -45,6 +45,11 @@ for arch in `ls -1 $BIN_DIR/`;do
     cp $source_file $target_file
 done
 
+# Copy site.tar.gz if present
+if [[ -f ./dist/site.tar.gz ]]; then
+  cp -avrf ./dist/site.tar.gz $RELEASE_DIR/site.tar.gz
+fi
+
 function release_sha() {
     echo "generating SHA256_SUM for release packages"
     release_dir_files=`find $RELEASE_DIR -maxdepth 1 ! -name SHA256_SUM -type f -printf "%f\n"`

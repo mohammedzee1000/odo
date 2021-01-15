@@ -37,7 +37,7 @@ NAME="openshift-odo-$ODO_RPM_VERSION-$ODO_RELEASE"
 echo "Making release for $NAME, git commit $GIT_COMMIT"
 
 echo "Cleaning up old content"
-rm -rf $DIST_DIR
+rm -rf $DIST_DIR/*
 rm -rf $FINAL_OUT_DIR
 
 echo "Configuring output directory $OUT_DIR"
@@ -48,6 +48,9 @@ mkdir -p $FINAL_OUT_DIR
 
 echo "Generating spec file $SPEC_DIR/openshift-odo.spec"
 envsubst <rpms/openshift-odo.spec > $SPEC_DIR/openshift-odo.spec
+
+echo "Packaging odo.dev site code"
+sh ./scripts/package-odo-dev.sh
 
 echo "Generating tarball $SOURCES_DIR/$NAME.tar.gz"
 # Copy code for manipulation
