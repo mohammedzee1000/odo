@@ -97,3 +97,4 @@ Obsoletes:      %{package_name}-redistributable <= %{odo_version}
 %{_datadir}/%{name}-redistributable/odo-windows-amd64.exe.zip
 %{_datadir}/%{name}-redistributable/SHA256_SUM
 %{_datadir}/%{name}-redistributable/VERSION
+%{_datadir}/%{name}-redistributable/site.tar.gz
