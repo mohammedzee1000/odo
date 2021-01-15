@@ -37,9 +37,11 @@ NAME="openshift-odo-$ODO_RPM_VERSION-$ODO_RELEASE"
 echo "Making release for $NAME, git commit $GIT_COMMIT"
 
 echo "Cleaning up old content"
+if [[ ! -d $DIST_DIR  ]]; then
+	mkdir -p $DIST_DIR
+fi
 rm -rf $DIST_DIR/*
 rm -rf $FINAL_OUT_DIR
-
 echo "Configuring output directory $OUT_DIR"
 rm -rf $OUT_DIR
 mkdir -p $SPEC_DIR
