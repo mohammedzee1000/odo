@@ -2,6 +2,10 @@
 
 ## Next
 
+### Breaking Changes
+
+- Dropping support for old service catalog based services ([4906](https://github.com/openshift/odo/pull/4906))
+
 ### Feature/Enhancements
 
 ### Bug Fixes
