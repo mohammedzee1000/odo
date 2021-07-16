@@ -242,62 +242,6 @@ func List(client *occlient.Client, applicationName string) (ServiceList, error) 
 	}, nil
 }
 
-// ListWithDetailedStatus lists all the deployed services and additionally provides a "smart" status for each one of them
-// The smart status takes into account how Services are used in odo.
-// So when a secret has been created as a result of the created ServiceBinding, we set the appropriate status
-// Same for when the secret has been "linked" into the deploymentconfig
-func ListWithDetailedStatus(client *occlient.Client, applicationName string) (ServiceList, error) {
-
-	services, err := List(client, applicationName)
-	if err != nil {
-		return ServiceList{}, err
-	}
-
-	// retrieve secrets in order to set status
-	secrets, err := client.GetKubeClient().ListSecrets("")
-	if err != nil {
-		return ServiceList{}, errors.Wrapf(err, "unable to list secrets as part of the bindings check")
-	}
-
-	// use the standard selector to retrieve DeploymentConfigs
-	// these are used in order to update the status of a service
-	// because if a DeploymentConfig contains a secret with the service name
-	// then it has been successfully linked
-	labels := map[string]string{
-		applabels.ApplicationLabel: applicationName,
-	}
-	applicationSelector := util.ConvertLabelsToSelector(labels)
-	deploymentConfigs, err := client.ListDeploymentConfigs(applicationSelector)
-	if err != nil {
-		return ServiceList{}, err
-	}
-
-	// go through each service and see if there is a secret that has been created
-	// if so, update the status of the service
-	for i, service := range services.Items {
-		for _, secret := range secrets {
-			if secret.Name == service.ObjectMeta.Name {
-				// this is the default status when the secret exists
-				services.Items[i].Status.Status = provisionedAndBoundStatus
-
-				// if we find that the dc contains a link to the secret
-				// we update the status to be even more specific
-				updateStatusIfMatchingDeploymentExists(deploymentConfigs, secret.Name, services.Items, i)
-
-				break
-			}
-		}
-	}
-
-	return ServiceList{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "List",
-			APIVersion: apiVersion,
-		},
-		Items: services.Items,
-	}, nil
-}
-
 // ListOperatorServices lists all operator backed services.
 // It returns list of services, slice of services that it failed (if any) to list and error (if any)
 func ListOperatorServices(client *kclient.Client) ([]unstructured.Unstructured, []string, error) {
