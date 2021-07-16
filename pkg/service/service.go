@@ -18,7 +18,6 @@ import (
 	"k8s.io/klog"
 
 	scv1beta1 "github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
-	appsv1 "github.com/openshift/api/apps/v1"
 	olm "github.com/operator-framework/api/pkg/operators/v1alpha1"
 
 	applabels "github.com/openshift/odo/pkg/application/labels"
@@ -31,8 +30,6 @@ import (
 	servicebinding "github.com/redhat-developer/service-binding-operator/api/v1alpha1"
 )
 
-const provisionedAndBoundStatus = "ProvisionedAndBound"
-const provisionedAndLinkedStatus = "ProvisionedAndLinked"
 const apiVersion = "odo.dev/v1alpha1"
 
 // NewServicePlanParameter creates a new ServicePlanParameter instance with the specified state
@@ -410,24 +407,6 @@ func GetCRInstances(client *kclient.Client, customResource *olm.CRDDescription) 
 	}
 
 	return instances, nil
-}
-
-func updateStatusIfMatchingDeploymentExists(dcs []appsv1.DeploymentConfig, secretName string, services []Service, index int) {
-
-	for _, dc := range dcs {
-		foundMatchingSecret := false
-		for _, env := range dc.Spec.Template.Spec.Containers[0].EnvFrom {
-			if env.SecretRef.Name == secretName {
-				services[index].Status.Status = provisionedAndLinkedStatus
-			}
-			foundMatchingSecret = true
-			break
-		}
-
-		if foundMatchingSecret {
-			break
-		}
-	}
 }
 
 // IsOperatorServiceNameValid checks if the provided name follows
