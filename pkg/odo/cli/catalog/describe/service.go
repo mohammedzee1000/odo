@@ -5,7 +5,6 @@ import (
 
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	"github.com/openshift/odo/pkg/service"
-	svc "github.com/openshift/odo/pkg/service"
 	"github.com/spf13/cobra"
 	ktemplates "k8s.io/kubectl/pkg/util/templates"
 )
@@ -31,11 +30,12 @@ var (
 
 // DescribeServiceOptions encapsulates the options for the odo catalog describe service command
 type DescribeServiceOptions struct {
+	//go lint complains of unused fields so commenting them out rather than removing as we dont know if we will need them
 	// name of the service to describe, from command arguments
-	serviceName string
+	//	serviceName string
 	// resolved service
-	service svc.ServiceClass
-	plans   []svc.ServicePlan
+	// service svc.ServiceClass
+	// plans   []svc.ServicePlan
 	// generic context options common to all commands
 	*genericclioptions.Context
 
