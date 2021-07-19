@@ -164,7 +164,7 @@ func NewCmdServiceCreate(name, fullName string) *cobra.Command {
 	o := NewCreateOptions()
 	o.CmdFullName = fullName
 	serviceCreateCmd := &cobra.Command{
-		Use:     fmt.Sprintf(" [flags]\n  %s <operator_type>/<crd_name> [service_name] [flags]", o.CmdFullName),
+		Use:     fmt.Sprintf("%s <operator_type>/<crd_name> [service_name] [flags]", name),
 		Short:   createShortDesc,
 		Long:    createLongDesc,
 		Example: fmt.Sprintf(createOperatorExample, fullName),
