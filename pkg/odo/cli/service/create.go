@@ -22,31 +22,26 @@ const (
 		"{{if .ServiceName}} {{.ServiceName}}{{end}}" +
 		" --app {{.Application}}" +
 		" --project {{.Project}}" +
-		"{{if .Plan}} --plan {{.Plan}}{{end}}" +
 		"{{range $key, $value := .ParametersMap}} -p {{$key}}={{$value}}{{end}}"
 )
 
 var (
-	createExample = ktemplates.Examples(`
-    # Create new postgresql service from service catalog using dev plan and name my-postgresql-db.
-    %[1]s dh-postgresql-apb my-postgresql-db --plan dev -p postgresql_user=luke -p postgresql_password=secret`)
-
 	createOperatorExample = ktemplates.Examples(`
 	# Create new EtcdCluster service from etcdoperator.v0.9.4 operator.
 	%[1]s etcdoperator.v0.9.4/EtcdCluster`)
 
-	createShortDesc = `Create a new service from Operator Hub or Service Catalog and deploy it on OpenShift.`
+	createShortDesc = `Create a new service from Operator Hub and deploy it on Kubernetes or OpenShift.`
 
 	createLongDesc = ktemplates.LongDesc(`
-Create a new service from Operator Hub or Service Catalog and deploy it on OpenShift.
+Create a new service from Operator Hub and deploy it on Kubernetes or OpenShift.
 
 Service creation can be performed from a valid component directory (one containing a devfile.yaml) only.
 
 To create the service from outside a component directory, specify path to a valid component directory using "--context" flag.
 
-When creating a service using Operator Hub, provide a service name along with Operator name.
+When creating a service, provide a service name along with Operator name.
 
-When creating a service using Service Catalog, a --plan must be passed along with the service type. Parameters to configure the service are passed as key=value pairs.
+Parameters to configure the service are passed as key=value pairs.
 
 For a full list of service types, use: 'odo catalog list services'`)
 )
@@ -55,8 +50,6 @@ For a full list of service types, use: 'odo catalog list services'`)
 type CreateOptions struct {
 	// parameters hold the user-provided values for service class parameters via flags (populated by cobra)
 	parameters []string
-	// Plan is the selected service plan
-	Plan string
 	// ServiceType corresponds to the service class name
 	ServiceType string
 	// ServiceName is how the service will be named and known by odo
@@ -171,28 +164,24 @@ func NewCmdServiceCreate(name, fullName string) *cobra.Command {
 	o := NewCreateOptions()
 	o.CmdFullName = fullName
 	serviceCreateCmd := &cobra.Command{
-		Use:     name + " <service_type> --plan <plan_name> [service_name]",
+		Use:     fmt.Sprintf(" [flags]\n  %s <operator_type>/<crd_name> [service_name] [flags]", o.CmdFullName),
 		Short:   createShortDesc,
 		Long:    createLongDesc,
-		Example: fmt.Sprintf(createExample, fullName),
+		Example: fmt.Sprintf(createOperatorExample, fullName),
 		Args:    cobra.RangeArgs(0, 2),
 		Run: func(cmd *cobra.Command, args []string) {
 			genericclioptions.GenericRun(o, cmd, args)
 		},
 	}
 
-	serviceCreateCmd.Use += fmt.Sprintf(" [flags]\n  %s <operator_type>/<crd_name> [service_name] [flags]", o.CmdFullName)
-	serviceCreateCmd.Example += "\n\n" + fmt.Sprintf(createOperatorExample, fullName)
-	serviceCreateCmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "Print the yaml specificiation that will be used to create the operator backed service")
+	serviceCreateCmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "Print the yaml specification that will be used to create the operator backed service")
 	// remove this feature after enabling service create interactive mode for operator backed services
 	serviceCreateCmd.Flags().StringVar(&o.fromFile, "from-file", "", "Path to the file containing yaml specification to use to start operator backed service")
 
-	serviceCreateCmd.Flags().StringVar(&o.Plan, "plan", "", "The name of the plan of the service to be created")
 	serviceCreateCmd.Flags().StringArrayVarP(&o.parameters, "parameters", "p", []string{}, "Parameters of the plan where a parameter is expressed as <key>=<value")
 	serviceCreateCmd.Flags().BoolVarP(&o.wait, "wait", "w", false, "Wait until the service is ready")
 	genericclioptions.AddContextFlag(serviceCreateCmd, &o.componentContext)
 	completion.RegisterCommandHandler(serviceCreateCmd, completion.ServiceClassCompletionHandler)
-	completion.RegisterCommandFlagHandler(serviceCreateCmd, "plan", completion.ServicePlanCompletionHandler)
 	completion.RegisterCommandFlagHandler(serviceCreateCmd, "parameters", completion.ServiceParameterCompletionHandler)
 	return serviceCreateCmd
 }

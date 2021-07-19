@@ -58,39 +58,6 @@ var ServiceClassCompletionHandler = func(cmd *cobra.Command, args parsedArgs, co
 	return
 }
 
-// ServicePlanCompletionHandler provides completion for the the plan of a selected service
-var ServicePlanCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context *genericclioptions.Context) (completions []string) {
-	completions = make([]string, 0)
-	// if we have less than two arguments, it means the user didn't specify the name of the service
-	// meaning that there is no point in providing suggestions
-	if len(args.original.Completed) < 2 {
-		complete.Log("Couldn't extract the service name")
-		return completions
-	}
-
-	inputServiceName := args.original.Completed[1]
-
-	complete.Log(fmt.Sprintf("Using input: serviceName = %s", inputServiceName))
-
-	clusterServiceClass, err := context.Client.GetKubeClient().GetClusterServiceClass(inputServiceName)
-	if err != nil {
-		complete.Log("Error retrieving details of service")
-		return completions
-	}
-
-	servicePlans, err := context.Client.GetKubeClient().ListClusterServicePlansByServiceName(clusterServiceClass.Name)
-	if err != nil {
-		complete.Log("Error retrieving details of plans of service")
-		return completions
-	}
-
-	for _, servicePlan := range servicePlans {
-		completions = append(completions, servicePlan.Spec.ExternalName)
-	}
-
-	return completions
-}
-
 // ServiceParameterCompletionHandler provides completion for the parameter names of a selected service and plan
 var ServiceParameterCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context *genericclioptions.Context) (completions []string) {
 	completions = make([]string, 0)

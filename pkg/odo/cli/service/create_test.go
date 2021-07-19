@@ -60,9 +60,8 @@ func TestOutputNonInteractiveEquivalent(t *testing.T) {
 				outputCLI:   true,
 				ServiceType: "foo",
 				ServiceName: "myservice",
-				Plan:        "dev",
 			},
-			expected: RecommendedCommandName + " foo myservice --app app --project testproject --plan dev",
+			expected: RecommendedCommandName + " foo myservice --app app --project testproject",
 		},
 		{
 			name: "service class and plan",
@@ -71,9 +70,8 @@ func TestOutputNonInteractiveEquivalent(t *testing.T) {
 				CmdFullName: RecommendedCommandName,
 				outputCLI:   true,
 				ServiceType: "foo",
-				Plan:        "dev",
 			},
-			expected: RecommendedCommandName + " foo --app app --project testproject --plan dev",
+			expected: RecommendedCommandName + " foo --app app --project testproject",
 		},
 		{
 			name: "service class and empty params",
@@ -105,10 +103,9 @@ func TestOutputNonInteractiveEquivalent(t *testing.T) {
 				outputCLI:     true,
 				ServiceType:   "foo",
 				ServiceName:   "name",
-				Plan:          "plan",
 				ParametersMap: map[string]string{"param1": "value1", "param2": "value2"},
 			},
-			expected: RecommendedCommandName + " foo name --app app --project testproject --plan plan -p param1=value1 -p param2=value2",
+			expected: RecommendedCommandName + " foo name --app app --project testproject -p param1=value1 -p param2=value2",
 		},
 	}
 
