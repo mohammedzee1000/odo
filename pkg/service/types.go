@@ -18,7 +18,7 @@ type OperatorExample struct {
 type Service struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              ServiceSpec   `json:"spec,omitempty"`
+	Spec              ServiceSpec `json:"spec,omitempty"`
 }
 
 // ServiceSpec ...
@@ -26,7 +26,6 @@ type ServiceSpec struct {
 	Type string `json:"type,omitempty"`
 	Plan string `json:"plan,omitempty"`
 }
-
 
 // ServiceClass holds the information regarding a service catalog service class
 type ServiceClass struct {

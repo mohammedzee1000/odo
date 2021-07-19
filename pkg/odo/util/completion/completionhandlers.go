@@ -188,7 +188,6 @@ var LinkCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context *g
 		return completions
 	}
 
-
 	for _, component := range components {
 		// we found the name in the list which means
 		// that the name has been already selected by the user so no need to suggest more
@@ -217,7 +216,6 @@ var UnlinkCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context 
 	if err != nil {
 		return completions
 	}
-
 
 	secretMounts := comp.GetLinkedSecrets()
 	for _, component := range components {
