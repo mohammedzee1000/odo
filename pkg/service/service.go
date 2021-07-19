@@ -29,8 +29,6 @@ import (
 	servicebinding "github.com/redhat-developer/service-binding-operator/api/v1alpha1"
 )
 
-const apiVersion = "odo.dev/v1alpha1"
-
 // NewServicePlanParameter creates a new ServicePlanParameter instance with the specified state
 func NewServicePlanParameter(name, typeName, defaultValue string, required bool) ServicePlanParameter {
 	return ServicePlanParameter{
