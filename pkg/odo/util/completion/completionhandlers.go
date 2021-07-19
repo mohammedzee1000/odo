@@ -1,7 +1,6 @@
 package completion
 
 import (
-	"fmt"
 	"strings"
 
 	applabels "github.com/openshift/odo/pkg/application/labels"
@@ -11,102 +10,12 @@ import (
 	"github.com/openshift/odo/pkg/component"
 	"github.com/openshift/odo/pkg/config"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
-	"github.com/openshift/odo/pkg/service"
 	"github.com/openshift/odo/pkg/storage"
 	"github.com/openshift/odo/pkg/url"
 	"github.com/openshift/odo/pkg/util"
 	"github.com/posener/complete"
 	"github.com/spf13/cobra"
 )
-
-// ServiceCompletionHandler provides service name completion for the current project and application
-var ServiceCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context *genericclioptions.Context) (completions []string) {
-	completions = make([]string, 0)
-
-	services, err := service.List(context.Client, context.Application)
-	if err != nil {
-		return completions
-	}
-
-	for _, class := range services.Items {
-		if args.commands[class.ObjectMeta.Name] {
-			return nil
-		}
-		completions = append(completions, class.ObjectMeta.Name)
-	}
-
-	return
-}
-
-// ServiceClassCompletionHandler provides catalog service class name completion
-var ServiceClassCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context *genericclioptions.Context) (completions []string) {
-	completions = make([]string, 0)
-	services, err := context.Client.GetKubeClient().ListClusterServiceClasses()
-	if err != nil {
-		complete.Log("error retrieving services")
-		return completions
-	}
-
-	complete.Log(fmt.Sprintf("found %d services", len(services)))
-	for _, class := range services {
-		if args.commands[class.Spec.ExternalName] {
-			return nil
-		}
-		completions = append(completions, class.Spec.ExternalName)
-	}
-
-	return
-}
-
-// ServiceParameterCompletionHandler provides completion for the parameter names of a selected service and plan
-var ServiceParameterCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context *genericclioptions.Context) (completions []string) {
-	completions = make([]string, 0)
-	if len(args.original.Completed) < 2 {
-		complete.Log("Couldn't extract the service name")
-		return completions
-	}
-
-	inputServiceName := args.original.Completed[1]
-	inputPlanName := args.flagValues["plan"]
-
-	complete.Log(fmt.Sprintf("Using input: serviceName = %s, servicePlan = %s", inputServiceName, inputPlanName))
-
-	_, servicePlans, err := service.GetServiceClassAndPlans(context.Client, inputServiceName)
-	if err != nil {
-		complete.Log("Error retrieving details of service")
-		return completions
-	}
-
-	var matchingServicePlan *service.ServicePlan = nil
-	if len(servicePlans) == 0 {
-		complete.Log("Service has no plans so no parameters can be found")
-		return completions
-	} else if len(servicePlans) == 1 && inputPlanName == "" {
-		matchingServicePlan = &servicePlans[0]
-	} else {
-		for _, sp := range servicePlans {
-			servicePlan := sp
-			if servicePlan.Name == inputPlanName {
-				matchingServicePlan = &servicePlan
-				break
-			}
-		}
-		if matchingServicePlan == nil {
-			complete.Log("No service plan for the service matched the supplied plan name")
-			return completions
-		}
-	}
-
-	alreadyAddedParameters := args.flagValues["parameters"]
-	for _, servicePlanParameter := range matchingServicePlan.Parameters {
-		// don't add the parameter if it's already on the command line
-		if !strings.Contains(alreadyAddedParameters, servicePlanParameter.Name) {
-			completions = append(completions, servicePlanParameter.Name)
-		}
-	}
-
-	return completions
-}
 
 // AppCompletionHandler provides completion for the app commands
 var AppCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context *genericclioptions.Context) (completions []string) {
@@ -279,12 +188,7 @@ var LinkCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context *g
 		return completions
 	}
 
-	services, err := service.List(context.Client, context.Application)
-	if err != nil {
-		return completions
-	}
 
-	completions = make([]string, 0, len(components)+len(services.Items))
 	for _, component := range components {
 		// we found the name in the list which means
 		// that the name has been already selected by the user so no need to suggest more
@@ -295,15 +199,6 @@ var LinkCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context *g
 		if component != context.Component() {
 			completions = append(completions, component)
 		}
-	}
-
-	for _, service := range services.Items {
-		// we found the name in the list which means
-		// that the name has been already selected by the user so no need to suggest more
-		if val, ok := args.commands[service.ObjectMeta.Name]; ok && val {
-			return nil
-		}
-		completions = append(completions, service.ObjectMeta.Name)
 	}
 
 	return completions
@@ -323,12 +218,7 @@ var UnlinkCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context 
 		return completions
 	}
 
-	services, err := service.List(context.Client, context.Application)
-	if err != nil {
-		return completions
-	}
 
-	completions = make([]string, 0, len(components)+len(services.Items))
 	secretMounts := comp.GetLinkedSecrets()
 	for _, component := range components {
 		// we found the name in the list which means
@@ -343,20 +233,6 @@ var UnlinkCompletionHandler = func(cmd *cobra.Command, args parsedArgs, context 
 				if strings.Contains(secret.SecretName, component) {
 					completions = append(completions, component)
 				}
-			}
-		}
-	}
-
-	for _, service := range services.Items {
-		// we found the name in the list which means
-		// that the name has been already selected by the user so no need to suggest more
-		if val, ok := args.commands[service.Name]; ok && val {
-			return nil
-		}
-		// we also need to make sure that this component has been linked to the current component
-		for _, secret := range secretMounts {
-			if strings.Contains(secret.SecretName, service.Name) {
-				completions = append(completions, service.Name)
 			}
 		}
 	}

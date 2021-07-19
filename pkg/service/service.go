@@ -23,7 +23,6 @@ import (
 	applabels "github.com/openshift/odo/pkg/application/labels"
 	componentlabels "github.com/openshift/odo/pkg/component/labels"
 	"github.com/openshift/odo/pkg/occlient"
-	"github.com/openshift/odo/pkg/util"
 	"github.com/pkg/errors"
 
 	"github.com/devfile/library/pkg/devfile/parser"
@@ -56,19 +55,6 @@ func (params servicePlanParameters) Less(i, j int) bool {
 
 func (params servicePlanParameters) Swap(i, j int) {
 	params[i], params[j] = params[j], params[i]
-}
-
-// CreateService creates new service from serviceCatalog
-// It returns string representation of service instance created on the cluster and error (if any).
-func CreateService(client *occlient.Client, serviceName, serviceType, servicePlan string, parameters map[string]string, applicationName string) (string, error) {
-	labels := componentlabels.GetLabels(serviceName, applicationName, true)
-	// save service type as label
-	labels[componentlabels.ComponentTypeLabel] = serviceType
-	serviceInstance, err := client.GetKubeClient().CreateServiceInstance(serviceName, serviceType, servicePlan, parameters, labels)
-	if err != nil {
-		return "", errors.Wrap(err, "unable to create service instance")
-	}
-	return serviceInstance, nil
 }
 
 // GetCSV checks if the CR provided by the user in the YAML file exists in the namesapce
@@ -181,62 +167,6 @@ func DeleteOperatorService(client *kclient.Client, serviceName string) error {
 	}
 
 	return client.DeleteDynamicResource(name, group, version, resource)
-}
-
-// List lists all the deployed services
-func List(client *occlient.Client, applicationName string) (ServiceList, error) {
-	labels := map[string]string{
-		applabels.ApplicationLabel: applicationName,
-	}
-
-	//since, service is associated with application, it consist of application label as well
-	// which we can give as a selector
-	applicationSelector := util.ConvertLabelsToSelector(labels)
-
-	// get service instance list based on given selector
-	serviceInstanceList, err := client.GetKubeClient().ListServiceInstances(applicationSelector)
-	if err != nil {
-		return ServiceList{}, errors.Wrapf(err, "unable to list services")
-	}
-
-	var services []Service
-	// Iterate through serviceInstanceList and add to service
-	for _, elem := range serviceInstanceList {
-		conditions := elem.Status.Conditions
-		var status string
-		if len(conditions) == 0 {
-			klog.Warningf("no condition in status for %+v, marking it as Unknown", elem)
-			status = "Unknown"
-		} else {
-			status = conditions[0].Reason
-		}
-
-		// Check and make sure that "name" exists..
-		if elem.Labels[componentlabels.ComponentLabel] == "" {
-			return ServiceList{}, errors.New(fmt.Sprintf("element %v returned blank name", elem))
-		}
-
-		services = append(services,
-			Service{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Service",
-					APIVersion: apiVersion,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: elem.Labels[componentlabels.ComponentLabel],
-				},
-				Spec:   ServiceSpec{Type: elem.Labels[componentlabels.ComponentTypeLabel], Plan: elem.Spec.ClusterServicePlanExternalName},
-				Status: ServiceStatus{Status: status},
-			})
-	}
-
-	return ServiceList{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "List",
-			APIVersion: apiVersion,
-		},
-		Items: services,
-	}, nil
 }
 
 // ListOperatorServices lists all operator backed services.
@@ -419,24 +349,6 @@ func IsOperatorServiceNameValid(name string) (string, string, error) {
 		return "", "", fmt.Errorf("invalid service name. Must adhere to <service-type>/<service-name> formatting. For example: %q. Execute %q for list of services", "EtcdCluster/example", "odo service list")
 	}
 	return checkName[0], checkName[1], nil
-}
-
-// SvcExists Checks whether a service with the given name exists in the current application or not
-// serviceName is the service name to perform check for
-// The first returned parameter is a bool indicating if a service with the given name already exists or not
-// The second returned parameter is the error that might occurs while execution
-func SvcExists(client *occlient.Client, serviceName, applicationName string) (bool, error) {
-
-	serviceList, err := List(client, applicationName)
-	if err != nil {
-		return false, errors.Wrap(err, "unable to get the service list")
-	}
-	for _, service := range serviceList.Items {
-		if service.ObjectMeta.Name == serviceName {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // OperatorSvcExists checks whether an Operator backed service with given name
