@@ -28,6 +28,27 @@ var _ = Describe("odo service command tests for OperatorHub", func() {
 		helper.CommonAfterEach(commonVar)
 	})
 
+	Context("user wants to work with services", func() {
+		When("user runs odo service commands with help flag", func() {
+			It("should display the help for odo service -h", func() {
+				appHelp := helper.Cmd("odo", "service", "-h").ShouldPass().Out()
+				Expect(appHelp).To(ContainSubstring("Perform service catalog operations"))
+			})
+			It("should display help message for odo service create", func() {
+				appHelp := helper.Cmd("odo", "service", "create", "-h").ShouldPass().Out()
+				Expect(appHelp).To(ContainSubstring("Create a new service from Operator Hub and deploy it on Kubernetes or OpenShift"))
+			})
+			It("should display help message for odo service delete", func() {
+				appHelp := helper.Cmd("odo", "service", "delete", "-h").ShouldPass().Out()
+				Expect(appHelp).To(ContainSubstring("Delete an existing service"))
+			})
+			It("should display help message for odo service list", func() {
+				appHelp := helper.Cmd("odo", "service", "list", "-h").ShouldPass().Out()
+				Expect(appHelp).To(ContainSubstring("List all services in the current application"))
+			})
+		})
+	})
+
 	Context("Operators are installed in the cluster", func() {
 
 		BeforeEach(func() {
