@@ -2,22 +2,18 @@ package ui
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/openshift/odo/pkg/odo/cli/ui"
 	"github.com/openshift/odo/pkg/odo/util/validation"
-	"github.com/openshift/odo/pkg/service"
 	"k8s.io/klog"
 
+	scv1beta1 "github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/mgutz/ansi"
 	terminal2 "golang.org/x/term"
 	"gopkg.in/AlecAivazis/survey.v1"
 	"gopkg.in/AlecAivazis/survey.v1/core"
-	"gopkg.in/AlecAivazis/survey.v1/terminal"
-
-	scv1beta1 "github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 )
 
 // Retrieve the list of existing service class categories
@@ -235,78 +231,4 @@ func getLongDescription(class scv1beta1.ClusterServiceClass) (longDescription st
 	}
 
 	return
-}
-
-// EnterServicePropertiesInteractively lets the user enter the properties specified by the provided plan if not already
-// specified by the passed values
-func EnterServicePropertiesInteractively(svcPlan scv1beta1.ClusterServicePlan) (values map[string]string) {
-	return enterServicePropertiesInteractively(svcPlan)
-}
-
-// enterServicePropertiesInteractively lets user enter the properties interactively using the specified Stdio instance (useful
-// for testing purposes)
-func enterServicePropertiesInteractively(svcPlan scv1beta1.ClusterServicePlan, stdio ...terminal.Stdio) (values map[string]string) {
-	planDetails, _ := service.NewServicePlan(svcPlan)
-
-	properties := make(map[string]service.ServicePlanParameter, len(planDetails.Parameters))
-	for _, v := range planDetails.Parameters {
-		properties[v.Name] = v
-	}
-
-	values = make(map[string]string, len(properties))
-
-	sort.Sort(planDetails.Parameters)
-
-	// first deal with required properties
-	for _, prop := range planDetails.Parameters {
-		if prop.Required {
-			addValueFor(prop, values, stdio...)
-			// remove property from list of properties to consider
-			delete(properties, prop.Name)
-		}
-	}
-
-	// finally check if we still have plan properties that have not been considered
-	if len(properties) > 0 && ui.Proceed("Provide values for non-required properties", stdio...) {
-		for _, prop := range properties {
-			addValueFor(prop, values, stdio...)
-		}
-	}
-
-	return values
-}
-
-func addValueFor(prop service.ServicePlanParameter, values map[string]string, stdio ...terminal.Stdio) {
-	var result string
-	prompt := &survey.Input{
-		Message: fmt.Sprintf("Enter a value for %s property %s:", prop.Type, propDesc(prop)),
-	}
-
-	if len(stdio) == 1 {
-		prompt.WithStdio(stdio[0])
-	}
-
-	if len(prop.Default) > 0 {
-		prompt.Default = prop.Default
-	}
-
-	err := survey.AskOne(prompt, &result, ui.GetValidatorFor(prop.AsValidatable()))
-	ui.HandleError(err)
-	values[prop.Name] = result
-}
-
-// propDesc computes a human-readable description of the specified property
-func propDesc(prop service.ServicePlanParameter) string {
-	msg := ""
-	if len(prop.Title) > 0 {
-		msg = prop.Title
-	} else if len(prop.Description) > 0 {
-		msg = prop.Description
-	}
-
-	if len(msg) > 0 {
-		msg = " (" + strings.TrimSpace(msg) + ")"
-	}
-
-	return prop.Name + msg
 }
